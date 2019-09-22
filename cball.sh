@@ -1,2 +1,7 @@
 export host=zanzalaz.com
-java -cp Chaosball.jar client.ChaosballWindow
+status=69
+while (($status == 69))
+do
+	java -cp Chaosball.jar client.ChaosballWindow
+	status=$?
+done
