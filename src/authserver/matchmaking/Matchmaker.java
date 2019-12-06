@@ -1,23 +1,14 @@
 package authserver.matchmaking;
 
-import gameserver.ServerApplication;
+import authserver.LoginController;
 import gameserver.GameTenant;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.*;
 
 @Component
 public class Matchmaker {
-    static{//Boot server for matchmaker
-        String[] args = new String[0];
-        try {
-            ServerApplication.main(args);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
     private Set<String> waitingPool = new HashSet<>();//user emails
     private Map<String, String> gameMap = new HashMap<>();//user emails -> game id
     private int desperation = 0; //TODO increase to eventually sacrifice match quality
@@ -54,10 +45,10 @@ public class Matchmaker {
         for(String email : gameFor) {
             gameMap.put(email, gameId.toString());
         }
-        ServerApplication.addNewGame(gameId.toString());
+        LoginController.addNewGame(gameId.toString());
     }
 
-    public void registerIntent(Authentication login) throws IOException {
+    public void registerIntent(Authentication login) {
         String email = login.getName();
         boolean contains = false;
         for(String e : waitingPool){

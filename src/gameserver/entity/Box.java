@@ -1,5 +1,6 @@
 package gameserver.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import gameserver.GameEngine;
 
 import java.awt.*;
@@ -9,9 +10,14 @@ import java.awt.geom.Rectangle2D;
 import java.util.UUID;
 
 public class Box extends Coordinates{
+
+    @JsonProperty
     public int width, height;
+    @JsonProperty
     public boolean solid;
+    @JsonProperty
     public UUID id;
+    @JsonProperty
     public int centerDist;
 
     public Box(int x, int y, int w, int h) {

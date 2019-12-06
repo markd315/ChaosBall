@@ -2,18 +2,12 @@ package gameserver;
 
 import authserver.SpringContextBridge;
 import authserver.users.UserService;
-import com.esotericsoftware.kryonet.Connection;
-import com.rits.cloning.Cloner;
 import networking.CandidateGame;
 import networking.ClientPacket;
-import networking.PlayerConnection;
 import networking.PlayerDivider;
 import util.Util;
 
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class GameTenant {
     public static final ServerMode serverMode = ServerMode.TRUETWO;
@@ -21,87 +15,48 @@ public class GameTenant {
 
     public GameEngine state;
     public String gameId;
-    List<PlayerConnection> clients = new ArrayList<>();
+    List<PlayerDivider> clients = new ArrayList<>();
     public List<List<Integer>> availableSlots;
     int claimIndex = 0;
+    private UserService userService;
 
     public GameTenant() {
     }
 
-    public void delegatePacket(Connection connection, ClientPacket request) {
-        if (state == null || state.phase < 8) {
-            addOrReplaceNewClient(connection, clients, request.token);
-        }
-        if (state != null) {
-            PlayerDivider pd = dividerFromConn(connection);
-            if(pd == null){//client rejoining under new connection ID
-                String email = Util.jwtExtractEmail(request.token);
-                for(PlayerDivider p : state.clients){
-                    if(p.getEmail().equals(email)){
-                        pd = p;
-                        pd.setId(connection);
-                        pd.setEmail(email);
-                    }
-                }
-                for(PlayerConnection pc : clients){
-                    if(pc.getEmail().equals(email)){
-                        pc.setClient(connection);
-                    }
-                }
-            }
-            state.processClientPacket(pd, request);
-        }
+    List<Integer> nextUnclaimedSlot(){
+        claimIndex++;
+        return availableSlots.get(claimIndex -1);
     }
 
-    private PlayerDivider dividerFromConn(Connection connection) {
-        for(PlayerDivider pc : state.clients){
-            //System.out.println(pc.id);
-            if(connection.getID() == pc.id){
-                return pc;
-            }
-        }
-        return null;
-    }
-
-    boolean lobbyFull(List<PlayerConnection> pd){
-        List<String> uniqueEmails = new ArrayList<>();
-        for(PlayerConnection p : pd){
-            if(!uniqueEmails.contains(p.getEmail())){
-                uniqueEmails.add(p.getEmail());
-            }
-        }
-        return (uniqueEmails.size() == availableSlots.size());
-    }
-
-    void addOrReplaceNewClient(Connection c, List<PlayerConnection> queue, String token){
-        boolean connFound = connectionQueued(queue, c);
+    public PlayerDivider playerFromToken(String token){
         String email = Util.jwtExtractEmail(token);
-        boolean emailFound = accountQueued(queue, email);
-        if(!connFound){
-            if(emailFound){ //rejoin unstarted game
-                for(PlayerConnection p : queue){
-                    if(p.getEmail().equals(email)){
-                        p.setClient(c);
-                    }
-                }
-            }else{
-                for(PlayerConnection p : queue){
-                    System.out.println(p.toString());
-                }
-                System.out.println("adding NEW client");
-                System.out.println(c.getRemoteAddressUDP());
-                queue.add(new PlayerConnection(nextUnclaimedSlot(), c, email));
+        PlayerDivider pd = null;
+        for(PlayerDivider p : state.clients){
+            if(p.getEmail().equals(email)){
+                pd = p;
+                pd.setEmail(email);
             }
         }
-        if(lobbyFull(queue)){
-            startGame(queue);
+        return pd;
+    }
+
+    void addOrReplaceNewClient(List<PlayerDivider> queue, String token){
+        String email = Util.jwtExtractEmail(token);
+        if (!accountQueued(queue, email)) {
+            for(PlayerDivider p : queue){
+                System.out.println(p.toString());
+            }
+            System.out.println("adding NEW client");
+            queue.add(new PlayerDivider(nextUnclaimedSlot(), email));
+            if(lobbyFull(queue)){
+                startGame(queue);
+            }
         }
     }
 
-    private void startGame(List<PlayerConnection> gameIncludedClients){
+    private void startGame(List<PlayerDivider> gameIncludedClients){
         System.out.println("starting full");
-        List<PlayerDivider> players = playersFromConnections(gameIncludedClients);
-        state = new GameEngine(gameId, players); //Start the game
+        state = new GameEngine(gameId, clients); //Start the game
         try {
             state.initializeServer();
             instantiateSpringContext();
@@ -115,60 +70,35 @@ public class GameTenant {
         catch (InterruptedException e) {
             e.printStackTrace();
         }
-        ScheduledExecutorService exec = Executors.newScheduledThreadPool(gameIncludedClients.size());
-
         System.out.println("reassigning client list on startgame");
-        for(PlayerConnection p : clients){
+        for(PlayerDivider p : clients){
             System.out.println(p.toString());
         }
         clients = gameIncludedClients;
-        for(PlayerConnection p : clients){
+        for(PlayerDivider p : clients){
             System.out.println(p.toString());
         }
-        Runnable updateClients = () -> {
-            //System.out.println("updating clients now");
-            clients.parallelStream().forEach(client -> {
-                PlayerDivider pd = dividerFromConn(client.getClient());
-                //Optimizing clone away by only hacking in the needed var fails because of occasional concurrency issue
-                Cloner cloner= new Cloner();
-                GameEngine update = cloner.deepClone(state);
-                update.underControl = state.titanSelected(pd);
-                client.getClient().sendUDP(update);
-            });
-        };
-
-        exec.scheduleAtFixedRate(updateClients, 1, 20, TimeUnit.MILLISECONDS);
     }
 
-
-    private static List<PlayerDivider> playersFromConnections(List<PlayerConnection> clients) {
-        List<PlayerDivider> ret = new ArrayList<>();
-        for(PlayerConnection pc : clients){
-            ret.add(new PlayerDivider(pc)); //GameEngine class doesn't know the connections, just IDs
-        }
-        return ret;
-    }
-
-    UserService userService = null;
-
-    List<Integer> nextUnclaimedSlot(){
-        claimIndex++;
-        return availableSlots.get(claimIndex -1);
-    }
-
-    private boolean connectionQueued(List<PlayerConnection> queue, Connection query){
-        boolean connFound = false;
-        for(PlayerConnection p : queue){
-            if (p.getClient().getID() == query.getID()){
-                connFound = true;
+    boolean lobbyFull(List<PlayerDivider> pd){
+        List<String> uniqueEmails = new ArrayList<>();
+        for(PlayerDivider p : pd){
+            if(!uniqueEmails.contains(p.getEmail())){
+                uniqueEmails.add(p.getEmail());
             }
         }
-        return connFound;
+        return (uniqueEmails.size() == availableSlots.size());
     }
 
-    private boolean accountQueued(List<PlayerConnection> queue, String email) {
+    public void delegatePacket(ClientPacket request) {
+        if (state != null) {
+            state.processClientPacket(playerFromToken(request.token), request);
+        }
+    }
+
+    private boolean accountQueued(List<PlayerDivider> queue, String email) {
         boolean emailFound = false;
-        for(PlayerConnection p : queue){
+        for(PlayerDivider p : queue){
             if (p.getEmail().equals(email)){
                 emailFound = true;
             }
@@ -176,9 +106,13 @@ public class GameTenant {
         return emailFound;
     }
 
-    private List<PlayerConnection> monteCarloBalance(List<PlayerConnection> players) {
+    private void instantiateSpringContext() {
+        userService = SpringContextBridge.services().getUserService();
+    }
+
+    private List<PlayerDivider> monteCarloBalance(List<PlayerDivider> players) {
         Map<String, Double> tempRating= new HashMap<>();
-        for(PlayerConnection pl : players){
+        for(PlayerDivider pl : players){
             System.out.println(pl.email +  " " + userService.findUserByEmail(pl.email).getRating());
             tempRating.put(pl.email, userService.findUserByEmail(pl.email).getRating());
         }
@@ -186,17 +120,13 @@ public class GameTenant {
         CandidateGame candidateGame= new CandidateGame();
         for(int i=0; i<MAX_MM; i++){
             //The final possibleSelection is still wrong, maybe trash this last list constructor
-            List<PlayerConnection> testOrder = new ArrayList<>(players);
+            List<PlayerDivider> testOrder = new ArrayList<>(players);
             Collections.shuffle(testOrder);
-            List<PlayerConnection> home = testOrder.subList(0, testOrder.size() / 2);
-            List<PlayerConnection> away = testOrder.subList(testOrder.size() / 2, testOrder.size());
+            List<PlayerDivider> home = testOrder.subList(0, testOrder.size() / 2);
+            List<PlayerDivider> away = testOrder.subList(testOrder.size() / 2, testOrder.size());
             candidateGame.suggestTeams(home, away, tempRating);
         }
         return candidateGame.bestMonteCarloBalance(availableSlots);
-    }
-
-    private void instantiateSpringContext() {
-        userService = SpringContextBridge.services().getUserService();
     }
 
     static{

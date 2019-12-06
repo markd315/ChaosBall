@@ -4,7 +4,11 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import gameserver.models.Game;
+import networking.ClientPacket;
 import org.json.JSONObject;
+
+import java.util.Optional;
 
 public class HttpClient {
 
@@ -35,7 +39,7 @@ public class HttpClient {
         return refresh(this.refreshToken);
     }
 
-    public int refresh(String inputRt) throws UnirestException {
+    public int refresh(String inputRt) {
         try {
             HttpResponse<JsonNode> response = Unirest.post(springEndpoint() + "refresh")
                     .header("Authorization", "Bearer " + inputRt)
@@ -50,6 +54,32 @@ public class HttpClient {
         }
     }
 
+    public Game update(ClientPacket controlsHeld){
+        Optional<HttpResponse<Game>> response = Optional.empty();
+
+        while (!response.isPresent()) {
+            response = updateRequest(controlsHeld);
+            token = null;
+            System.out.println("Session expired, refreshing token");
+            refresh(refreshToken);
+        }
+        return response.get().getBody();
+    }
+
+    public Optional<HttpResponse<Game>> updateRequest(ClientPacket controlsHeld) {
+        try {
+            HttpResponse<Game> response = Unirest.post(springEndpoint() + "ingame")
+                    .header("Authorization", "Bearer " + token)
+                    .body(controlsHeld)
+                    .asObject(Game.class);
+            System.out.println("statusCode = " + response.getStatus());
+            System.out.println("gameId = " + gameId);
+            return Optional.of(response);
+        }catch (Exception e){
+            return Optional.empty();
+        }
+    }
+
     public void join() throws UnirestException {
         while (joinRequest() == 401) {
             token = null;
@@ -58,7 +88,7 @@ public class HttpClient {
         }
     }
 
-    public int joinRequest() throws UnirestException {
+    public int joinRequest() {
         try {
             HttpResponse<String> response = Unirest.get(springEndpoint() + "join")
                     .header("Authorization", "Bearer " + token)

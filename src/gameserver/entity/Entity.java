@@ -1,16 +1,21 @@
 package gameserver.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import gameserver.GameEngine;
 import gameserver.effects.effects.DeadEffect;
 import gameserver.engine.TeamAffiliation;
-import gameserver.models.Game;
 
 public class Entity extends Box {
+    @JsonProperty
     public double health, maxHealth;
+    @JsonProperty
     public TeamAffiliation team;
+    @JsonProperty
     public double speed = 5;
+    @JsonProperty
     public double armorRatio = 1.0;
+    @JsonProperty
     public double healReduce = 1.0;
 
     public Entity() {
@@ -78,17 +83,17 @@ public class Entity extends Box {
     public void translateBounded(double dx, double dy) {
         this.X+=dx;
         this.Y+=dy;
-        if(this.X > Game.E_MAX_X){
-            this.X = Game.E_MAX_X;
+        if(this.X > GameEngine.E_MAX_X){
+            this.X = GameEngine.E_MAX_X;
         }
-        if(this.X < Game.E_MIN_X){
-            this.X = Game.E_MIN_X;
+        if(this.X < GameEngine.E_MIN_X){
+            this.X = GameEngine.E_MIN_X;
         }
-        if(this.Y > Game.E_MAX_Y){
-            this.Y = Game.E_MAX_Y;
+        if(this.Y > GameEngine.E_MAX_Y){
+            this.Y = GameEngine.E_MAX_Y;
         }
-        if(this.Y < Game.E_MIN_Y){
-            this.Y = Game.E_MIN_Y;
+        if(this.Y < GameEngine.E_MIN_Y){
+            this.Y = GameEngine.E_MIN_Y;
         }
     }
 }

@@ -1,13 +1,24 @@
 package authserver;
 
 import authserver.jwt.JwtTokenProvider;
+import authserver.matchmaking.Match;
 import authserver.matchmaking.Matchmaker;
+import authserver.matchmaking.Rating;
 import authserver.models.DTO.LoginRequest;
 import authserver.models.DTO.UserDTO;
 import authserver.models.User;
 import authserver.models.responses.JwtAuthenticationResponse;
 import authserver.models.responses.UserResponse;
+import authserver.users.PersistenceManager;
 import authserver.users.UserService;
+import com.rits.cloning.Cloner;
+import gameserver.GameEngine;
+import gameserver.GameTenant;
+import gameserver.engine.TeamAffiliation;
+import gameserver.entity.Titan;
+import gameserver.models.Game;
+import networking.ClientPacket;
+import networking.PlayerDivider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,7 +33,10 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.*;
 
 import static util.Util.isRole;
 
@@ -44,6 +58,30 @@ public class LoginController {
 
     @Autowired
     AuthenticationManager authenticationManager;
+
+    @PostMapping("/ingame")
+    public ResponseEntity<Game> submitControls(@Valid @RequestBody ClientPacket controls) {
+        GameEngine update = null;
+        if(controls.gameID !=null) {
+            GameTenant state = states.get(controls.gameID);
+
+            if(state != null){
+                instantiateSpringContext();
+                checkGameExpiry();
+
+                //input
+                if (controls.token != null) {
+                    state.delegatePacket(controls);
+                }
+
+                //response
+                Cloner cloner = new Cloner();
+                update = cloner.deepClone(state.state);
+                update.underControl = state.state.titanSelected(state.playerFromToken(controls.token));
+            }
+        }
+        return new ResponseEntity<>(update, HttpStatus.OK);
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -120,7 +158,96 @@ public class LoginController {
         return new ResponseEntity<>(new UserResponse(user), headers, HttpStatus.CREATED);
     }
 
+    public static void addNewGame(String id) {
+        states.put(id, new GameTenant(id));
+    }
 
+    private static void checkGameExpiry() {
+        Set<String> rm = new HashSet<>();
+        for (String id : states.keySet()) {
+            GameTenant val = states.get(id);
+            if (val != null && val.state != null && val.state.ended) {
+                injectRatingsToPlayers(val.state);
+                for (PlayerDivider player : val.state.clients) {
+                    try {
+                        Titan t = val.state.titanSelected(player);
+                        if (t != null) {
+                            String className = t.getType().toString();
+                            persistenceManager.postgameStats(player.email, val.state.stats, className, player.wasVictorious, player.newRating);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                rm.add(id);
+                matchmaker.endGame(id);
+            }
+        }
+        for (String id : rm) {
+            states.remove(id);
+        }
+    }
+
+    private static void injectRatingsToPlayers(GameEngine state) {
+        List<Rating> home = new ArrayList<>(), away = new ArrayList<>();
+        for (PlayerDivider pl : state.clients) {
+            User persistence = persistenceManager.userService.findUserByEmail(pl.email);
+            //System.out.println("got user " + persistence.getEmail() + persistence.getRating());
+            Rating<User> oldRating = new Rating<>(persistence, persistence.getLosses() + persistence.getWins());
+            if (state.players[pl.getSelection() - 1].team == TeamAffiliation.HOME) {
+                oldRating.setRating(persistence.getRating());
+                home.add(oldRating);
+            } else {
+                oldRating.setRating(persistence.getRating());
+                away.add(oldRating);
+            }
+        }
+        Rating<String> homeRating = new Rating<>(home, "home", 0);
+        Rating<String> awayRating = new Rating<>(away, "away", 0);
+        Match<User> match = new Match(homeRating, awayRating, state.home.score - state.away.score);
+        //System.out.println(match.winMargin + "");
+        match.injectAverage(home, away);
+        for (PlayerDivider pl : state.clients) {
+            updatePlayerRating(pl, home);
+            updatePlayerRating(pl, away);
+        }
+    }
+
+    private static void updatePlayerRating(PlayerDivider pl, List<Rating> team) {
+        for (Rating<User> r : team) {
+            if (r.getID().getEmail().equals(pl.email)) {
+                //System.out.println(r.rating + " new");
+                pl.newRating = r.rating;
+            }
+        }
+    }
+
+    private void instantiateSpringContext() {
+        userService = SpringContextBridge.services().getUserService();
+        persistenceManager = SpringContextBridge.services().getPersistenceManager();
+        matchmaker = SpringContextBridge.services().getMatchmaker();
+    }
+
+    public static Map<String, GameTenant> states = new HashMap<>(); //UUID onto game
+
+    static Matchmaker matchmaker;
+
+    static PersistenceManager persistenceManager;
+
+    static JwtTokenProvider tp = new JwtTokenProvider();
+
+    static Properties prop;
+    static String appSecret;
+
+    static {
+        try {
+            prop = new Properties();
+            prop.load(new FileInputStream(new File("application.properties")));
+            appSecret = prop.getProperty("app.jwtSecret");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 }
 

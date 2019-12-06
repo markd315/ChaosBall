@@ -1,5 +1,6 @@
 package gameserver.engine;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import gameserver.GameEngine;
 import gameserver.effects.EffectId;
 import gameserver.effects.EffectPool;
@@ -14,6 +15,8 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
 
 public class StatEngine {
+
+    @JsonProperty
     private List<Map<String, Double>> gamestats;
 
     public void grant(PlayerDivider pl, StatEnum en, double amount) {

@@ -3,6 +3,7 @@ C:\Users\markd\Chaosball\src\gameserver\effects\effects\TestEffect.java
 C:\Users\markd\Chaosball\src\authserver\users\UserService.java
 C:\Users\markd\Chaosball\src\gameserver\effects\EffectPool.java
 C:\Users\markd\Chaosball\src\gameserver\effects\effects\BleedEffect.java
+C:\Users\markd\Chaosball\src\networking\JacksonClient.java
 C:\Users\markd\Chaosball\src\gameserver\GameTenant.java
 C:\Users\markd\Chaosball\src\authserver\users\ClassServiceImpl.java
 C:\Users\markd\Chaosball\src\client\ScreenConst.java
@@ -28,7 +29,6 @@ C:\Users\markd\Chaosball\src\client\ControlsConfig.java
 C:\Users\markd\Chaosball\src\client\ChaosballWindow.java
 C:\Users\markd\Chaosball\src\authserver\users\ClassRepository.java
 C:\Users\markd\Chaosball\src\gameserver\entity\Collidable.java
-C:\Users\markd\Chaosball\src\gameserver\ServerApplication.java
 C:\Users\markd\Chaosball\src\client\HttpClient.java
 C:\Users\markd\Chaosball\src\networking\PlayerDivider.java
 C:\Users\markd\Chaosball\src\authserver\models\ClassStat.java
@@ -39,7 +39,7 @@ C:\Users\markd\Chaosball\src\authserver\SpringContextBridge.java
 C:\Users\markd\Chaosball\src\gameserver\effects\cooldowns\CooldownQ.java
 C:\Users\markd\Chaosball\src\gameserver\entity\Box.java
 C:\Users\markd\Chaosball\src\gameserver\effects\effects\HideBallEffect.java
-C:\Users\markd\Chaosball\src\authserver\LoginApp.java
+C:\Users\markd\Chaosball\src\networking\LoginApp.java
 C:\Users\markd\Chaosball\src\authserver\users\UserRepository.java
 C:\Users\markd\Chaosball\src\gameserver\effects\effects\Effect.java
 C:\Users\markd\Chaosball\src\gameserver\effects\effects\EmptyEffect.java
@@ -63,7 +63,6 @@ C:\Users\markd\Chaosball\src\gameserver\models\Game.java
 C:\Users\markd\Chaosball\src\authserver\matchmaking\Matchmaker.java
 C:\Users\markd\Chaosball\src\client\GoalSprite.java
 C:\Users\markd\Chaosball\src\authserver\SpringSecurityConfig.java
-C:\Users\markd\Chaosball\src\networking\PlayerConnection.java
 C:\Users\markd\Chaosball\src\gameserver\effects\cooldowns\CooldownE.java
 C:\Users\markd\Chaosball\src\gameserver\effects\cooldowns\CooldownR.java
 C:\Users\markd\Chaosball\src\util\Util.java
@@ -80,6 +79,7 @@ C:\Users\markd\Chaosball\src\gameserver\targeting\SelectorOffset.java
 C:\Users\markd\Chaosball\src\gameserver\entity\RangeCircle.java
 C:\Users\markd\Chaosball\src\gameserver\entity\Coordinates.java
 C:\Users\markd\Chaosball\src\gameserver\entity\minions\Trap.java
+C:\Users\markd\Chaosball\src\networking\JacksonServer.java
 C:\Users\markd\Chaosball\src\gameserver\entity\minions\Portal.java
 C:\Users\markd\Chaosball\src\authserver\LoginController.java
 C:\Users\markd\Chaosball\src\authserver\users\PersistenceManager.java
@@ -92,4 +92,3 @@ C:\Users\markd\Chaosball\src\authserver\users\ClassService.java
 C:\Users\markd\Chaosball\src\gameserver\entity\Entity.java
 C:\Users\markd\Chaosball\src\gameserver\entity\minions\Wall.java
 C:\Users\markd\Chaosball\src\authserver\models\DTO\LoginRequest.java
-C:\Users\markd\Chaosball\src\networking\KryoRegistry.java

@@ -1,13 +1,7 @@
 package client;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Listener;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.rits.cloning.Cloner;
-import gameserver.GameEngine;
 import gameserver.effects.EffectId;
 import gameserver.effects.cooldowns.CooldownE;
 import gameserver.effects.cooldowns.CooldownR;
@@ -23,9 +17,9 @@ import gameserver.entity.TitanType;
 import gameserver.entity.minions.BallPortal;
 import gameserver.entity.minions.Portal;
 import gameserver.entity.minions.Wall;
+import gameserver.models.Game;
 import gameserver.targeting.ShapePayload;
 import networking.ClientPacket;
-import networking.KryoRegistry;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.json.JSONObject;
@@ -46,15 +40,13 @@ import java.util.concurrent.TimeUnit;
 
 public class ChaosballClient extends JPanel implements ActionListener, KeyListener {
     protected final ScreenConst sconst;
-    protected Client gameserverConn;
-    protected String gameID;
-    protected GameEngine game;
-    ClientPacket controlsHeld = new ClientPacket();
+    public String gameID;
+    public Game game;
+    public ClientPacket controlsHeld = new ClientPacket();
     int debugCamera = 0;
     int cursor = 1; // For deciding classes
     public Timer timer = new Timer(25, this);
     public Instant gamestart = null;
-    public Random rand;
     int camX = 0;
     int camY = 0;
     int ballFrame = 0;
@@ -70,16 +62,15 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
     Images ballFBTexture = new Images();
     Images ballPtr = new Images();
     Images ballFPtr = new Images();
-    protected int phase;
-    protected Kryo kryo;
+    public int phase;
     protected boolean camFollow = true;
     int xSize, ySize;
     protected boolean keysEnabled = true;
-    protected HttpClient loginClient;
+    public HttpClient loginClient;
     protected boolean instructionToggle = false;
     ControlsConfig controlsConfig = new ControlsConfig();
     protected int staticFrame = 0, staticFrameCounter = 0;
-    protected Masteries masteries = new Masteries();
+    public Masteries masteries = new Masteries();
     protected int masteriesIndex = 0;
 
     public int indexSelected() {
@@ -116,7 +107,7 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
             try {
                 System.out.println("running req and init");
                 gameID = requestOrQueueGame();
-                clientInitialize();
+                clientInitialize(loginClient.token);
                 phase = 5;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -214,45 +205,20 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
         }
     }
 
-    public void clientInitialize() throws IOException {
+    public void clientInitialize(String token) {
         crowdFrame = 1;
         crowdFrameCount = 0;
         ballFrame = 0;
         ballFrameCounter = 0;
         camX = 500;
         camY = 300;
-        gameserverConn = new Client(8192 * 8, 32768 * 8);
-        gameserverConn.start();
-        //gameserverConn.setHardy(true);
-        gameserverConn.connect(999999999, System.getenv("host"), 54555, 54556);
-        kryo = gameserverConn.getKryo();
-        gameserverConn.addListener(new Listener() {
-            public synchronized void received(Connection connection, Object object) {
-                if (object instanceof GameEngine) {
-                    game = (GameEngine) object;
-                    game.began = true;
-                    phase = game.phase;
-                    controlsHeld.gameID = gameID;
-                    controlsHeld.token = loginClient.token;
-                    controlsHeld.masteries = masteries;
-                    try {
-                        gameserverConn.sendTCP(controlsHeld); //Automatically respond to the gameserver with tutorial when we get a new state
-                    } catch (KryoException e) {
-                        System.out.println("kryo end");
-                        System.out.println(game.ended);
-                    }
-                } else {
-                    System.out.println("Didn't get a game from gameserver!");
-                }
-            }
-        });
-        KryoRegistry.register(kryo);
         ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
         Runnable updateServer = () -> {
             controlsHeld.gameID = gameID;
-            controlsHeld.token = loginClient.token;
+            controlsHeld.token = token;
             controlsHeld.masteries = masteries;
-            gameserverConn.sendTCP(controlsHeld);
+            this.game = loginClient.update(controlsHeld);
+            this.phase = game.phase;
         };
         exec.scheduleAtFixedRate(updateServer, 1, 20, TimeUnit.MILLISECONDS);
     }

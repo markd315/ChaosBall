@@ -25,7 +25,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>authserver.LoginApp</mainClass>
+                            <mainClass>LoginApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

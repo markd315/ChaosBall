@@ -24,6 +24,45 @@ import java.util.concurrent.TimeUnit;
 public class GameEngine extends Game {
     private static final boolean GOALIE_DISABLED = true;
 
+    public static final int SPRITE_X_EMPTY = 50;
+    public static final int SPRITE_Y_EMPTY = 18;
+    public static final double SOFT_WIN = 3.0, WIN_BY = 2.0, HARD_WIN = 8.0;
+    protected static final long GAMETICK_MS = 25;
+    public static final int MAX_X = 2070;
+    public static final int E_MAX_X = 2030;
+    public static final int MAX_Y = 1010;
+    public static final int E_MAX_Y = 950;
+    public static final int MIN_X = 50;
+    public static final int E_MIN_X = -10;
+    public static final int MIN_Y = 230;
+    public static final int E_MIN_Y = 170;
+    public static final int GOALIE_Y_MAX = 890;
+    public static final int GOALIE_Y_MIN = 290;
+    public static final int GOALIE_XH_MAX = 179;
+    public static final int GOALIE_XH_MIN = 43;
+    public static final int GOALIE_XA_MAX = 2002;
+    public static final int GOALIE_XA_MIN = 1866;
+    protected final int FIELD_LENGTH = 2050;
+    protected final int TOP_WING_ST = 0;
+    protected final int TOP_WING_END = 500;
+    protected final int BOT_WING_ST = 700;
+    protected final int BOT_WING_END = 9999;
+    protected final int DEFENDER_CREEP = 650;
+    protected final int DEFENDER_RETREAT = 0;
+    protected final int MID_CREEP = 1550;
+    protected final int MID_RETREAT = 550;
+    protected final int FW_CREEP = 1850;
+    protected final int FW_RETREAT = 1250;
+    protected final int TOP_WING_HOME = 287;
+    protected final int MID_WING_HOME = 587;
+    protected final int BOT_WING_HOME = 887;
+    protected final int T_CIRCLE_WING_HOME = 450;
+    protected final int B_CIRCLE_WING_HOME = 750;
+    protected final int DEFENDER_HOME = 325;
+    protected final int MID_HOME = 850;
+    protected final int FW_HOME = 900;
+
+
     public GameEngine(String id, List<PlayerDivider> clients) {
         this.clients = clients;
         cullUnmappedTitans();

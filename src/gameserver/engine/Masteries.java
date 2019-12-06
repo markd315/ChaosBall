@@ -1,5 +1,6 @@
 package gameserver.engine;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import gameserver.entity.Titan;
 
 public class Masteries {
@@ -16,7 +17,9 @@ public class Masteries {
         this.speed = 1;
     }
 
+    @JsonProperty
     public int health, shot, damage, cooldowns, effectDuration, stealRadius;
+    @JsonProperty
     public int abilityRange, abilityLag, speed;
 
     public static String masteryFromIndex(int idx) {

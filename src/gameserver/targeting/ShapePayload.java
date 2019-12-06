@@ -1,5 +1,6 @@
 package gameserver.targeting;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import gameserver.engine.TeamAffiliation;
 import gameserver.entity.Titan;
 import org.joda.time.Instant;
@@ -9,12 +10,19 @@ import java.awt.geom.Ellipse2D;
 
 public class ShapePayload {
     private static final int COLLIDER_DISP_MS = 400;
+    @JsonProperty
     int x, y, w, h;
+    @JsonProperty
     double rot;
+    @JsonProperty
     ShapeSelector type;
+    @JsonProperty
     private int[] xp, yp;
+    @JsonProperty
     protected float[] color = new float[4];
+    @JsonProperty
     public Instant dispUntil;
+    @JsonProperty
     public boolean disp;
 
     public ShapePayload(){ }

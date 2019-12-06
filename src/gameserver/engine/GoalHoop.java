@@ -1,13 +1,18 @@
 package gameserver.engine;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.joda.time.Instant;
 
 public class GoalHoop{
+    @JsonProperty
     public Instant nextAvailable;
+    @JsonProperty
     public boolean onCooldown, frozen;
+    @JsonProperty
     public TeamAffiliation team;
 
+    @JsonProperty
     public int x, y, w, h;
 
     public GoalHoop(int x, int y, int w, int h, TeamAffiliation team) {
