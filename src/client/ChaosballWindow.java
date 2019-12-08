@@ -52,7 +52,7 @@ public class ChaosballWindow extends JFrame {
             Scanner sc = new Scanner(new File("session.jwt"));
             loginClient.refreshToken = sc.nextLine();
             sc.close();
-            if(loginClient.refresh(loginClient.refreshToken) != 200){
+            if(loginClient.refreshRequest(loginClient.refreshToken) != 200){
                 throw new Exception("Refresh token invalid!");
             }
             writeRefreshToken(loginClient.refreshToken);

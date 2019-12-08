@@ -111,6 +111,7 @@ public class Masteries {
             t.eCastFrames /= Math.pow(1.18, this.abilityLag-1);
             t.rCastFrames /= Math.pow(1.18, this.abilityLag-1);
             t.sCastFrames /= Math.pow(1.18, this.abilityLag-1);
+            //Toggle mastery/type lock with this next line
             t.typeAndMasteriesLocked = true;
         }
     }

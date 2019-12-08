@@ -277,4 +277,6 @@ public class User implements Serializable, UserDetails {
     public void setRebounds(int rebounds) {
         this.rebounds = rebounds;
     }
+
+
 }

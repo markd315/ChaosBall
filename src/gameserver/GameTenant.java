@@ -1,7 +1,10 @@
 package gameserver;
 
 import authserver.SpringContextBridge;
+import authserver.matchmaking.Matchmaker;
+import authserver.models.User;
 import authserver.users.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import networking.CandidateGame;
 import networking.ClientPacket;
 import networking.PlayerDivider;
@@ -15,9 +18,10 @@ public class GameTenant {
 
     public GameEngine state;
     public String gameId;
-    List<PlayerDivider> clients = new ArrayList<>();
+    List<PlayerDivider> clients;
     public List<List<Integer>> availableSlots;
     int claimIndex = 0;
+
     private UserService userService;
 
     public GameTenant() {
@@ -31,8 +35,11 @@ public class GameTenant {
     public PlayerDivider playerFromToken(String token){
         String email = Util.jwtExtractEmail(token);
         PlayerDivider pd = null;
-        for(PlayerDivider p : state.clients){
+        System.out.println("clients" + clients);
+        for(PlayerDivider p : clients){
+            System.out.println("need a email match for user " + p.getEmail());
             if(p.getEmail().equals(email)){
+                System.out.println("matched an email (phew)");
                 pd = p;
                 pd.setEmail(email);
             }
@@ -40,43 +47,51 @@ public class GameTenant {
         return pd;
     }
 
-    void addOrReplaceNewClient(List<PlayerDivider> queue, String token){
-        String email = Util.jwtExtractEmail(token);
+    public void passQueueToUsers(Matchmaker matchmaker) {
+        Map<String, String> map = matchmaker.getGameMap();
+        ArrayList<PlayerDivider> queue = new ArrayList<>();
+        for(String email : map.keySet()){
+            addOrReplaceNewClient(queue, email);
+        }
+    }
+
+    void addOrReplaceNewClient(List<PlayerDivider> queue, String email){
         if (!accountQueued(queue, email)) {
-            for(PlayerDivider p : queue){
-                System.out.println(p.toString());
-            }
             System.out.println("adding NEW client");
             queue.add(new PlayerDivider(nextUnclaimedSlot(), email));
             if(lobbyFull(queue)){
-                startGame(queue);
+                this.clients = queue;
+                System.out.println("starting game!");
+                startGame();
             }
         }
     }
 
-    private void startGame(List<PlayerDivider> gameIncludedClients){
-        System.out.println("starting full");
-        state = new GameEngine(gameId, clients); //Start the game
+    private void startGame(){
+        instantiateSpringContext();
+        System.out.println("starting full with " + clients.size() + " users and selections ");
+        this.clients = this.monteCarloBalance(this.clients);
+        System.out.println("starting full with " + clients.size() + " users and selections ");
+        for(PlayerDivider cl : clients){
+            for(Integer i : cl.getPossibleSelection()){
+                System.out.print(" " + i);
+            }
+            System.out.println();
+        }
+        state  = new GameEngine(gameId, clients); //Start the game
+        waitFive();
+        state.initializeServer();
+        state.clients = clients;
+    }
+
+    private void waitFive() {
         try {
-            state.initializeServer();
-            instantiateSpringContext();
-            gameIncludedClients = this.monteCarloBalance(gameIncludedClients);
-            int seconds = 5;
             for(int i=0; i<5; i++){
-                Thread.sleep(1000);
-                seconds -=1;
+                Thread.sleep(950);
             }
         }
         catch (InterruptedException e) {
             e.printStackTrace();
-        }
-        System.out.println("reassigning client list on startgame");
-        for(PlayerDivider p : clients){
-            System.out.println(p.toString());
-        }
-        clients = gameIncludedClients;
-        for(PlayerDivider p : clients){
-            System.out.println(p.toString());
         }
     }
 
@@ -90,10 +105,15 @@ public class GameTenant {
         return (uniqueEmails.size() == availableSlots.size());
     }
 
-    public void delegatePacket(ClientPacket request) {
-        if (state != null) {
-            state.processClientPacket(playerFromToken(request.token), request);
+    public void delegatePacket(PlayerDivider pl, ClientPacket request) {
+        if(state != null){
+            System.out.println("delegating from player " + pl);
+            state.processClientPacket(pl, request);
         }
+        else{
+            System.out.println("server still not ready to start!");
+        }
+
     }
 
     private boolean accountQueued(List<PlayerDivider> queue, String email) {
@@ -112,13 +132,21 @@ public class GameTenant {
 
     private List<PlayerDivider> monteCarloBalance(List<PlayerDivider> players) {
         Map<String, Double> tempRating= new HashMap<>();
+        instantiateSpringContext();
+        System.out.println("players size" + players.size());
+        System.out.println(userService);
+        ObjectMapper mapper = new ObjectMapper();
         for(PlayerDivider pl : players){
-            System.out.println(pl.email +  " " + userService.findUserByEmail(pl.email).getRating());
-            tempRating.put(pl.email, userService.findUserByEmail(pl.email).getRating());
+            //Currently pl says email, but is actually a USERNAME, we need to fix that
+            User user = userService.findUserByUsername(pl.email);
+            //Correct the pl.email field.
+            pl.email = user.getEmail();
+            System.out.println(user.getEmail() +  " " + user.getRating());
+            tempRating.put(pl.email, user.getRating());
         }
-        final int MAX_MM = 5;
+        final int MM_ATTEMPTS = 5;
         CandidateGame candidateGame= new CandidateGame();
-        for(int i=0; i<MAX_MM; i++){
+        for(int i=0; i<MM_ATTEMPTS; i++){
             //The final possibleSelection is still wrong, maybe trash this last list constructor
             List<PlayerDivider> testOrder = new ArrayList<>(players);
             Collections.shuffle(testOrder);

@@ -2,6 +2,9 @@ package networking;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import gameserver.engine.Masteries;
 import gameserver.entity.TitanType;
 
@@ -35,4 +38,14 @@ public class ClientPacket implements Serializable {
     public String token;
     @JsonProperty
     public String gameID;
+
+    public String toString(){
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        try {
+            return ow.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return "error!";
+    }
 }

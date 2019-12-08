@@ -1,6 +1,9 @@
 package gameserver.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import gameserver.effects.EffectPool;
 import gameserver.engine.GoalHoop;
 import gameserver.engine.StatEngine;
@@ -147,5 +150,14 @@ public class Game {
             }
         }
         this.colliders.removeAll(rm);
+    }
+    public String toString(){
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        try {
+            return ow.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return "error!";
     }
 }

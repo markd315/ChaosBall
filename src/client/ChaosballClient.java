@@ -214,13 +214,17 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
         camY = 300;
         ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
         Runnable updateServer = () -> {
+            System.out.println("trying to update");
             controlsHeld.gameID = gameID;
             controlsHeld.token = token;
             controlsHeld.masteries = masteries;
             this.game = loginClient.update(controlsHeld);
+            this.gameID = this.game.gameId;
+            System.out.println(this.game);
+            System.out.println(this.gameID);
             this.phase = game.phase;
         };
-        exec.scheduleAtFixedRate(updateServer, 1, 20, TimeUnit.MILLISECONDS);
+        exec.scheduleAtFixedRate(updateServer, 1, 100, TimeUnit.MILLISECONDS);
     }
 
     protected String requestOrQueueGame() throws UnirestException {
@@ -462,7 +466,7 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
 
         for (RangeCircle ri : clientCircles) {
             g2D.setStroke(new BasicStroke(1));
-            g2D.setColor(ri.getColor());
+            g2D.setColor(ri.readColor());
             Titan t = game.underControl;
             if (ri.getRadius() > 0) {
                 if (t.getType() != TitanType.ARTISAN || t.possession == 0) {
@@ -1129,6 +1133,7 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
         g2D.drawString("STARTING", 418, 480);
         if ((game == null || game.phase < 8) && Instant.now().isAfter(gamestart.plus(new Duration(50)))) {
             //TODO this messes us up bad somehow for everyone but the last client to connect
+            /*
             g2D.setFont(new Font("Verdana", Font.BOLD, 12));
             g2D.drawString("(Client may be disconnected, try alt-F4 and restarting client)", 80, 520);
             //wait another 10s and then try resetting
@@ -1139,6 +1144,7 @@ public class ChaosballClient extends JPanel implements ActionListener, KeyListen
                     e.printStackTrace();
                 }
             }
+            */
         }
     }
 

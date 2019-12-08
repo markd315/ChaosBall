@@ -76,7 +76,7 @@ public class ShapePayload {
         return new Rectangle(this.x - camX, this.y - camY, this.w, this.h);
     }
 
-    public void setColor(Titan caster) {
+    public void bindColor(Titan caster) {
         if(caster.team == TeamAffiliation.HOME){
             setColor(Color.blue);
             return;

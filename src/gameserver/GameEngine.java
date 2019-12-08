@@ -232,7 +232,7 @@ public class GameEngine extends Game {
         return null;
     }
 
-    public void initializeServer() throws InterruptedException {
+    public void initializeServer() {
         home.hasBall = false;
         away.hasBall = false;
         goalVisible = false;
@@ -387,9 +387,12 @@ public class GameEngine extends Game {
 
     public void processClientPacket(PlayerDivider from, ClientPacket request) {
         lock();
-        //System.out.println("xclick " + request.posX);
+        System.out.println(from);
+        System.out.println(request);
+        System.out.println("xclick " + request.posX);
         if (from != null) {
-            Titan t = titanFromPacket(from);
+            System.out.println("processing a packet");
+            Titan t = titanControlledBy(from);
             int btn = 0;
             if(request.shotBtn){
                 btn = 1;
@@ -403,30 +406,19 @@ public class GameEngine extends Game {
             this.processProgramming(t, request);
             this.processKeys(request, from);
             //moving select code to here allows class switch during game
-            if (!began) {
-                //System.out.println(from.toString() + " ready");
-                for (PlayerDivider client : clients) {
-                    if (client.id == from.id) {
-                        from.ready = true;
-                        int classSelIndex = client.possibleSelection.get(0) - 1;
-                        players[classSelIndex].setType(request.classSelection);
-                        if(request.masteries != null){
-                            request.masteries.applyMasteries(players[classSelIndex]);
-                        }
+            for (PlayerDivider client : clients) {
+                if (client.id == from.id) {
+                    from.ready = true;
+                    int classSelIndex = client.possibleSelection.get(0) - 1;
+                    players[classSelIndex].setType(request.classSelection);
+                    if(request.masteries != null){
+                        //Masteries autolock when this method is called.
+                        request.masteries.applyMasteries(players[classSelIndex]);
                     }
                 }
-                for (PlayerDivider client : clients) {
-                    if (!client.ready) {
-                        unlock();
-                        return;
-                    }
-                }
-                began = true;
-                ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
-                TerminableExecutor terminableExecutor = new TerminableExecutor(this, exec);
-                exec.scheduleAtFixedRate(terminableExecutor, 0, GAMETICK_MS, TimeUnit.MILLISECONDS);
-
-                System.out.println("gametick kickoff should only run once");
+            }
+            if(!began){
+                gameBegin();
             }
             intersectAll();
             try {
@@ -439,7 +431,19 @@ public class GameEngine extends Game {
         unlock();
     }
 
-    protected Titan titanFromPacket(PlayerDivider conn) {
+    public void gameBegin() {
+        System.out.println("delegation method gamestart check");
+        if (!began) {
+            System.out.println("delegation method gamestart actual");
+            began = true;
+            ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
+            TerminableExecutor terminableExecutor = new TerminableExecutor(this, exec);
+            exec.scheduleAtFixedRate(terminableExecutor, 0, GAMETICK_MS, TimeUnit.MILLISECONDS);
+            System.out.println("gametick kickoff should only run once");
+        }
+    }
+
+    protected Titan titanControlledBy(PlayerDivider conn) {
         for (PlayerDivider p : clients) {
             if (p.id == conn.id) {
                 return players[p.selection - 1];
@@ -1511,16 +1515,19 @@ public class GameEngine extends Game {
         ScheduledExecutorService exec;
 
         TerminableExecutor(GameEngine gm, ScheduledExecutorService exec) {
+            System.out.println("constructing terminable executor");
             this.context = gm;
             this.exec = exec;
         }
 
         public void run() {
+            System.out.println("hit run method");
             if (context.ended) {
                 System.out.println("suspending game thread");
                 exec.shutdown();
             } else {
                 try {
+                    System.out.println("ticking");
                     context.gameTick();
                 } catch (Exception e) {
                     e.printStackTrace();

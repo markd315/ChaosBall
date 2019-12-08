@@ -33,16 +33,6 @@ public class Team {
         }
     }
 
-    public Team getEnemyTeam(){
-
-        for(int i=0; i < allTeams.size(); i++){
-            if(!allTeams.get(i).equals(this)){
-                return allTeams.get(i);
-            }
-        }
-        return null;
-    }
-
     public static Team getTeamFromAffilitation(TeamAffiliation enumerated){
 
 

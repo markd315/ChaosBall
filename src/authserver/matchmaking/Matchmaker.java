@@ -1,6 +1,6 @@
 package authserver.matchmaking;
 
-import authserver.LoginController;
+import authserver.Controller;
 import gameserver.GameTenant;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -14,7 +14,10 @@ public class Matchmaker {
     private int desperation = 0; //TODO increase to eventually sacrifice match quality
 
     public String findGame(Authentication login){
-        String email = login.getName();
+        return findGame(login.getName());
+    }
+
+    public String findGame(String email){
         if(gameMap.containsKey(email)){
             return gameMap.get(email);
         }
@@ -22,6 +25,10 @@ public class Matchmaker {
             return "WAITING";
         }
         return "NOT QUEUED";
+    }
+
+    public Map<String, String> getGameMap(){
+        return gameMap;
     }
 
     private void makeMatches() {
@@ -45,7 +52,7 @@ public class Matchmaker {
         for(String email : gameFor) {
             gameMap.put(email, gameId.toString());
         }
-        LoginController.addNewGame(gameId.toString());
+        Controller.addNewGame(gameId.toString(), this);
     }
 
     public void registerIntent(Authentication login) {
